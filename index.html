@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Vault & Downloader</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="text-slate-100 font-sans antialiased p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center my-8">
+            <h1 class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Personal File Hub
+            </h1>
+            <p class="text-slate-400 mt-2">Upload, preview, and download your media seamlessly.</p>
+        </header>
+
+        <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <label class="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-6 rounded-xl cursor-pointer transition shadow-lg shadow-blue-600/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Choose Files
+                <input type="file" id="fileInput" multiple class="hidden">
+            </label>
+            
+            <button id="downloadAllBtn" class="w-full sm:w-auto hidden flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition shadow-lg shadow-purple-600/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download All (.zip)
+            </button>
+        </div>
+
+        <div id="emptyState" class="text-center py-20 border-2 border-dashed border-slate-800 rounded-2xl">
+            <p class="text-slate-500 text-lg">No files uploaded yet. Select some files above to start!</p>
+        </div>
+
+        <div id="filesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const filesGrid = document.getElementById('filesGrid');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const emptyState = document.getElementById('emptyState');
+        
+        // This array will hold our uploaded file objects for the session
+        let uploadedFiles = [];
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            emptyState.classList.add('hidden');
+            downloadAllBtn.classList.remove('hidden');
+
+            files.forEach(file => {
+                uploadedFiles.push(file);
+                
+                // Create a temporary local URL for the file so the browser can render it
+                const fileURL = URL.createObjectURL(file);
+                
+                // Create card container
+                const card = document.createElement('div');
+                card.className = "bg-slate-900/40 border border-slate-800/80 rounded-xl overflow-hidden flex flex-col justify-between shadow-md hover:border-slate-700 transition duration-200";
+
+                let mediaHTML = '';
+
+                // Check file types to render correctly
+                if (file.type.startsWith('image/')) {
+                    mediaHTML = `<img src="${fileURL}" class="w-full h-48 object-cover bg-slate-950" alt="${file.name}">`;
+                } else if (file.type.startsWith('video/')) {
+                    mediaHTML = `
+                        <div class="relative w-full h-48 bg-slate-950">
+                            <video src="${fileURL}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+                            <button onclick="toggleMute(this)" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg text-xs font-medium transition">
+                                Unmute
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Fallback for document types, zip files, etc.
+                    mediaHTML = `
+                        <div class="w-full h-48 bg-slate-950/50 flex flex-col items-center justify-center p-4 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span class="text-xs text-slate-400 break-all line-clamp-2 px-2">${file.name}</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        ${mediaHTML}
+                        <div class="p-4">
+                            <h3 class="text-sm font-semibold truncate text-slate-200" title="${file.name}">${file.name}</h3>
+                            <p class="text-xs text-slate-500 mt-1">${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0">
+                        <a href="${fileURL}" download="${file.name}" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium py-2 px-4 rounded-lg transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download
+                        </a>
+                    </div>
+                `;
+
+                filesGrid.appendChild(card);
+            });
+        });
+
+        // Function to let users unmute/mute videos manually
+        function toggleMute(btn) {
+            const video = btn.previousElementSibling;
+            if (video.muted) {
+                video.muted = false;
+                btn.innerText = "Mute";
+            } else {
+                video.muted = true;
+                btn.innerText = "Unmute";
+            }
+        }
+
+        // Zip up all files and download them together
+        downloadAllBtn.addEventListener('click', () => {
+            if (uploadedFiles.length === 0) return;
+            
+            const zip = new JSZip();
+            downloadAllBtn.innerText = "Zipping files...";
+            downloadAllBtn.disabled = true;
+
+            uploadedFiles.forEach((file) => {
+                zip.file(file.name, file);
+            });
+
+            zip.generateAsync({ type: "blob" }).then((content) => {
+                const zipURL = URL.createObjectURL(content);
+                const tempLink = document.createElement('a');
+                tempLink.href = zipURL;
+                tempLink.download = "vault_archive.zip";
+                document.body.appendChild(tempLink);
+                tempLink.click();
+                document.body.removeChild(tempLink);
+                
+                // Reset button state
+                downloadAllBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Download All (.zip)
+                `;
+                downloadAllBtn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
