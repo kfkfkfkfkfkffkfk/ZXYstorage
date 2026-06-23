@@ -55,7 +55,7 @@
   #scrollPort{
     margin:16px 24px 40px;
     overflow-y:auto;
-    outline: none; /* remove outline when focused for arrow keys */
+    outline: none;
   }
   #gridSpacer{
     position:relative;
@@ -100,6 +100,12 @@
   #previewContent .preview-name{font-size:18px;font-weight:700}
   #previewClose{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:16px;transition:0.2s}
   #previewClose:hover{background:rgba(255,255,255,0.2)}
+
+  /* Code Preview Styles */
+  .code-preview-container{width:90vw;max-width:900px;max-height:85vh;display:flex;flex-direction:column;background:var(--bg);border-radius:12px;overflow:hidden;border:1px solid var(--border);text-align:left;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+  .code-header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .code-header .preview-name{font-family:'Space Mono',monospace;font-size:14px;color:var(--text);font-weight:700;}
+  .code-content{padding:16px;overflow-y:auto;flex:1;font-family:'Space Mono',monospace;font-size:13px;line-height:1.5;color:var(--text);margin:0;white-space:pre-wrap;word-break:break-word;}
 
   ::-webkit-scrollbar{width:5px}
   ::-webkit-scrollbar-track{background:var(--bg)}
@@ -211,6 +217,12 @@ function readLayout(){
 // ══════════════════════════════════════════════
 //  Helpers
 // ══════════════════════════════════════════════
+function isTextFile(rec) {
+  if (rec.type && rec.type.startsWith('text/')) return true;
+  if (rec.type === 'application/json') return true;
+  const exts = ['.js','.html','.css','.py','.cpp','.c','.java','.ts','.jsx','.tsx','.txt','.md','.json','.xml'];
+  return exts.some(ext => rec.name.toLowerCase().endsWith(ext));
+}
 function cat(mime){
   if(!mime)return'other';
   if(mime.startsWith('image/'))return'image';
@@ -313,16 +325,17 @@ function renderVisible(){
       media=`<div class="card-media"><span class="file-icon">${icon(c,rec.type)}</span></div>`;
     }
 
-    card.setAttribute('onclick', `selectCard(event, ${JSON.stringify(rec.id)})`);
-    card.setAttribute('ondblclick', `openCard(${JSON.stringify(rec.id)})`);
+    // Using single quotes inside the function calls to prevent breaking HTML attributes
+    card.setAttribute('onclick', `selectCard(event, '${rec.id}')`);
+    card.setAttribute('ondblclick', `openCard('${rec.id}')`);
 
     card.innerHTML=`${media}
       <div class="card-info">
         <div class="card-name" title="${escHtml(rec.name)}">${escHtml(rec.name)}</div>
         <div class="card-meta">${fmtSize(rec.size)}</div>
         <div class="card-actions">
-          <button class="card-btn" onclick="dlOne(event, ${JSON.stringify(rec.id)})">⬇ Save</button>
-          <button class="card-btn del" onclick="delOne(event, ${JSON.stringify(rec.id)})">✕</button>
+          <button class="card-btn" onclick="dlOne(event, '${rec.id}')">⬇ Save</button>
+          <button class="card-btn del" onclick="delOne(event, '${rec.id}')">✕</button>
         </div>
       </div>`;
     frag.appendChild(card);
@@ -360,7 +373,7 @@ window.addEventListener('resize',()=>{readLayout();sizePort();setSpacerH();visib
 // ══════════════════════════════════════════════
 function selectCard(e, id) {
   selectedId = id;
-  PORT.focus(); // Give focus to the scrolling area so arrow keys work immediately
+  PORT.focus(); 
   visibleStart=-1;visibleEnd=-1; 
   renderVisible();
 }
@@ -384,7 +397,9 @@ function scrollToSelection(index) {
 }
 
 let previewOpen = false;
-function openPreview() {
+let currentPreviewText = ''; // Stores the raw text safely for copying
+
+async function openPreview() {
   if(!selectedId) return;
   const rec = allFiles.find(f => f.id === selectedId);
   if(!rec) return;
@@ -393,7 +408,22 @@ function openPreview() {
   const c = cat(rec.type);
   const pc = document.getElementById('previewContent');
 
-  if(c === 'image') pc.innerHTML = `<img src="${url}">`;
+  if(isTextFile(rec)) {
+    try {
+      currentPreviewText = await rec.blob.text();
+      pc.innerHTML = `
+        <div class="code-preview-container" onclick="event.stopPropagation()">
+          <div class="code-header">
+            <span class="preview-name">${escHtml(rec.name)}</span>
+            <button class="btn btn-copy" onclick="copyPreviewCode()">📋 Copy Code</button>
+          </div>
+          <pre class="code-content">${escHtml(currentPreviewText)}</pre>
+        </div>`;
+    } catch(err) {
+      pc.innerHTML = `<div style="text-align:center;color:white;">Failed to read text file.</div>`;
+    }
+  }
+  else if(c === 'image') pc.innerHTML = `<img src="${url}">`;
   else if(c === 'video') pc.innerHTML = `<video src="${url}" controls autoplay></video>`;
   else pc.innerHTML = `<div style="text-align:center"><div class="file-icon">${icon(c, rec.type)}</div><div class="preview-name">${escHtml(rec.name)}</div></div>`;
 
@@ -404,11 +434,21 @@ function openPreview() {
 function closePreview() {
   document.getElementById('previewOverlay').classList.remove('show');
   document.getElementById('previewContent').innerHTML = ''; 
+  currentPreviewText = '';
   previewOpen = false;
 }
 
+async function copyPreviewCode() {
+  try {
+    await navigator.clipboard.writeText(currentPreviewText);
+    toast('✓ Code copied to clipboard!');
+  } catch(e) {
+    toast('❌ Failed to copy code.');
+  }
+}
+
 document.addEventListener('keydown', e => {
-  if(e.target.tagName === 'INPUT') return; // Ignore if typing in search bar
+  if(e.target.tagName === 'INPUT') return; 
 
   if (e.code === 'Space') {
     e.preventDefault(); 
@@ -418,11 +458,10 @@ document.addEventListener('keydown', e => {
     closePreview();
   } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
     if (!filtered.length || previewOpen) return;
-    e.preventDefault(); // Stop window scrolling natively
+    e.preventDefault(); 
 
     let currentIndex = filtered.findIndex(f => f.id === selectedId);
     
-    // If nothing is selected yet, start at the first item
     if (currentIndex === -1) {
       currentIndex = 0;
     } else {
@@ -432,18 +471,16 @@ document.addEventListener('keydown', e => {
       else if (e.code === 'ArrowUp') currentIndex -= COLS;
     }
 
-    // Keep it within bounds
     if (currentIndex < 0) currentIndex = 0;
     if (currentIndex >= filtered.length) currentIndex = filtered.length - 1;
 
     selectedId = filtered[currentIndex].id;
     scrollToSelection(currentIndex);
     
-    visibleStart = -1; visibleEnd = -1; // Force re-render to highlight
+    visibleStart = -1; visibleEnd = -1; 
     renderVisible();
   }
 });
-
 
 // ══════════════════════════════════════════════
 //  Filter / Search
@@ -473,7 +510,6 @@ function onFilterChange(){
   const searchBox = document.getElementById('searchInput');
   const clearBtn = document.getElementById('clearSearchBtn');
   
-  // Show/Hide the clear button
   if(searchBox.value.length > 0) clearBtn.style.display = 'block';
   else clearBtn.style.display = 'none';
 
@@ -485,7 +521,7 @@ function onFilterChange(){
 function clearSearchText() {
   const searchBox = document.getElementById('searchInput');
   searchBox.value = '';
-  searchBox.focus(); // Keep user in the search bar
+  searchBox.focus(); 
   onFilterChange();
 }
 
@@ -545,7 +581,7 @@ async function copyUpdatedCode() {
 
   try {
     await navigator.clipboard.writeText(htmlString);
-    toast('✓ Code copied! Paste into your GitHub index.html');
+    toast('✓ App Code copied! Paste into GitHub');
   } catch (err) {
     toast('❌ Failed to copy. See console.');
     console.error(err);
@@ -602,7 +638,7 @@ function dlOne(e, id){
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = getURL(rec);
-  a.download = rec.name; // Forces the browser to download instead of open
+  a.download = rec.name; 
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -700,7 +736,7 @@ async function init(){
   }
   buildFiltered();
   relayout();
-  PORT.focus(); // Set focus to scroll area initially for immediate arrow key use
+  PORT.focus(); 
 }
 init();
 </script>
