@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MY GITHUB VAULT</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   :root {
     --bg:#080b12;--surface:#0e1320;--card:#131926;--border:#1e2a3d;
     --accent:#5c6ef8;--accent2:#a78bfa;--green:#34d399;
@@ -18,7 +18,47 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
   header{position:sticky;top:0;z-index:100;background:rgba(8,11,18,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
-  .logo{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  
+  /* --- NEW COOL LOGO STYLES --- */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    cursor: default;
+  }
+  .logo-icon {
+    color: var(--accent2);
+    display: inline-block;
+    animation: spinHex 12s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.6));
+    font-size: 20px;
+  }
+  .logo:hover .logo-icon {
+    animation: spinHex 2s linear infinite; /* Spins faster on hover! */
+  }
+  .logo-text {
+    background: linear-gradient(270deg, var(--accent), var(--accent2), var(--green), var(--accent));
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 6s ease infinite;
+    filter: drop-shadow(0 0 8px rgba(92, 110, 248, 0.3));
+  }
+  @keyframes spinHex {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  /* ---------------------------- */
+
   .stats{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);display:flex;gap:16px}
   .stats span b{color:var(--text)}
 
@@ -91,7 +131,6 @@
   #toast{position:fixed;bottom:20px;right:20px;z-index:999;background:var(--green);color:#000;font-weight:700;font-size:12px;padding:10px 18px;border-radius:9px;transform:translateY(70px);opacity:0;transition:all .25s;font-family:'Space Mono',monospace}
   #toast.show{transform:translateY(0);opacity:1}
 
-  /* Preview Overlay Styles */
   #previewOverlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(8,11,18,0.9);backdrop-filter:blur(10px);z-index:2000;display:none;align-items:center;justify-content:center}
   #previewOverlay.show{display:flex}
   #previewContent{max-width:90vw;max-height:90vh;display:flex;align-items:center;justify-content:center;flex-direction:column}
@@ -101,7 +140,6 @@
   #previewClose{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:16px;transition:0.2s}
   #previewClose:hover{background:rgba(255,255,255,0.2)}
 
-  /* Code Preview Styles */
   .code-preview-container{width:90vw;max-width:900px;max-height:85vh;display:flex;flex-direction:column;background:var(--bg);border-radius:12px;overflow:hidden;border:1px solid var(--border);text-align:left;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
   .code-header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
   .code-header .preview-name{font-family:'Space Mono',monospace;font-size:14px;color:var(--text);font-weight:700;}
@@ -119,7 +157,10 @@
 <body>
 
 <header>
-  <div class="logo">⬡ VAULT</div>
+  <div class="logo">
+    <span class="logo-icon">⬡</span>
+    <span class="logo-text">VAULT</span>
+  </div>
   <div class="stats">
     <span>FILES <b id="statCount">0</b></span>
     <span>SHOWN <b id="statShown">0</b></span>
@@ -325,7 +366,6 @@ function renderVisible(){
       media=`<div class="card-media"><span class="file-icon">${icon(c,rec.type)}</span></div>`;
     }
 
-    // Using single quotes inside the function calls to prevent breaking HTML attributes
     card.setAttribute('onclick', `selectCard(event, '${rec.id}')`);
     card.setAttribute('ondblclick', `openCard('${rec.id}')`);
 
@@ -397,7 +437,7 @@ function scrollToSelection(index) {
 }
 
 let previewOpen = false;
-let currentPreviewText = ''; // Stores the raw text safely for copying
+let currentPreviewText = ''; 
 
 async function openPreview() {
   if(!selectedId) return;
