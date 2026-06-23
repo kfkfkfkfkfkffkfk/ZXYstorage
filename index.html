@@ -3,825 +3,1045 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#14171C">
-<title>File Capsule</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<title>My Vault</title>
 <style>
-  :root{
-    --bg:#14171C;
-    --bg-elevated:#1B1F26;
-    --bg-card:#1F232B;
-    --border:#2B313B;
-    --text:#ECE7DD;
-    --text-muted:#8B8F96;
-    --brass:#D9A24B;
-    --brass-dim:#B98A3D;
-    --teal:#5FA8A0;
-    --danger:#E2613B;
-    --amber:#E0A847;
-    --radius:12px;
-    --display-font:'Big Shoulders Display', 'Arial Narrow', sans-serif;
-    --body-font:'Inter', system-ui, -apple-system, sans-serif;
-    --mono-font:'JetBrains Mono', 'SF Mono', monospace;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:var(--body-font);
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-  }
-  body::before{
-    content:"";
-    position:fixed; inset:0;
-    background:
-      radial-gradient(circle at 15% 0%, rgba(217,162,75,0.07), transparent 45%),
-      radial-gradient(circle at 85% 100%, rgba(95,168,160,0.06), transparent 45%);
-    pointer-events:none;
-    z-index:0;
-  }
-  .page{
-    position:relative;
-    z-index:1;
-    max-width:1080px;
-    margin:0 auto;
-    padding:48px 24px 140px;
-  }
-  /* ---------- Header ---------- */
-  .eyebrow{
-    font-family:var(--mono-font);
-    font-size:12px;
-    letter-spacing:0.18em;
-    text-transform:uppercase;
-    color:var(--brass);
-    margin:0 0 10px;
-  }
-  .title{
-    font-family:var(--display-font);
-    font-weight:800;
-    font-size:clamp(44px, 9vw, 86px);
-    letter-spacing:0.01em;
-    margin:0 0 16px;
-    line-height:0.95;
-    text-transform:uppercase;
-  }
-  .subtitle{
-    color:var(--text-muted);
-    font-size:16px;
-    max-width:560px;
-    margin:0 0 36px;
-  }
-  /* ---------- Intake ---------- */
-  .intake{margin-bottom:28px;}
-  .dropzone{
-    border:1.5px dashed var(--border);
-    border-radius:var(--radius);
-    background:var(--bg-elevated);
-    padding:36px 24px;
-    text-align:center;
-    cursor:pointer;
-    transition:border-color .15s ease, background .15s ease;
-  }
-  .dropzone:hover, .dropzone:focus-visible{
-    border-color:var(--brass-dim);
-    background:#1F2430;
-  }
-  .dropzone.is-dragover{
-    border-color:var(--brass);
-    background:#23291A;
-  }
-  .dropzone-icon{
-    display:inline-flex;
-    width:40px;height:40px;
-    align-items:center;justify-content:center;
-    border-radius:50%;
-    background:rgba(217,162,75,0.12);
-    color:var(--brass);
-    margin-bottom:12px;
-  }
-  .dropzone-icon svg{width:20px;height:20px;}
-  .dropzone-text{margin:0 0 4px;font-size:15px;}
-  .dropzone-text strong{color:var(--text);}
-  .dropzone-hint{margin:0;font-size:13px;color:var(--text-muted);}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap');
 
-  .controls{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    gap:18px;
-    margin-top:14px;
-    padding:14px 16px;
-    background:var(--bg-elevated);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    font-size:13px;
-  }
-  .toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;color:var(--text);}
-  .toggle input{accent-color:var(--brass);width:16px;height:16px;}
-  .control-row{display:flex;align-items:center;gap:8px;color:var(--text-muted);flex-wrap:wrap;}
-  .control-row select, .control-row input[type=range]{accent-color:var(--brass);}
-  .control-row select{
-    background:var(--bg-card);
-    color:var(--text);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:4px 8px;
-    font-family:var(--body-font);
-    font-size:13px;
-  }
-  #qualityLabel{font-family:var(--mono-font);color:var(--text);min-width:34px;}
-
-  /* ---------- Gauge ---------- */
-  .gauge-section{margin-bottom:28px;}
-  .gauge-track{
-    height:8px;
-    border-radius:999px;
-    background:var(--bg-card);
-    border:1px solid var(--border);
-    overflow:hidden;
-  }
-  .gauge-fill{
-    height:100%;
-    width:0%;
-    border-radius:999px;
-    transition:width .25s ease, background .25s ease;
-  }
-  .gauge-fill.zone-safe{background:linear-gradient(90deg,#3E7C73,var(--teal));}
-  .gauge-fill.zone-warn{background:linear-gradient(90deg,var(--brass-dim),var(--amber));}
-  .gauge-fill.zone-danger{background:linear-gradient(90deg,#A8412B,var(--danger));}
-  .gauge-meta{
-    display:flex;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:6px;
-    margin-top:8px;
-    font-family:var(--mono-font);
-    font-size:12.5px;
-    color:var(--text-muted);
-  }
-  .gauge-warning{color:var(--danger);}
-
-  /* ---------- Progress ---------- */
-  .progress{
-    font-family:var(--mono-font);
-    font-size:13px;
-    color:var(--brass);
-    margin:0 0 20px;
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #22222f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #7c6fff;
+    --accent2: #a78bfa;
+    --accent-glow: rgba(124,111,255,0.15);
+    --text: #f0f0f8;
+    --text2: #9090aa;
+    --text3: #5a5a72;
+    --green: #34d399;
+    --red: #f87171;
+    --gold: #fbbf24;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 18px;
   }
 
-  /* ---------- Empty state ---------- */
-  .empty-state{
-    text-align:center;
-    padding:64px 20px;
-    color:var(--text-muted);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    background:var(--bg-elevated);
-  }
-  .empty-state svg{width:38px;height:38px;color:var(--brass-dim);margin-bottom:14px;}
-  .empty-state h2{margin:0 0 6px;color:var(--text);font-family:var(--display-font);font-weight:700;letter-spacing:.02em;text-transform:uppercase;font-size:22px;}
-  .empty-state p{margin:0;font-size:14px;}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ---------- Gallery ---------- */
-  .gallery{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(168px,1fr));
-    gap:14px;
-  }
-  .card{
-    background:var(--bg-card);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    animation:cardIn .25s ease both;
-  }
-  @keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-  .thumb-wrap{
-    position:relative;
-    aspect-ratio:1/1;
-    background:#15181E;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-  }
-  .thumb{width:100%;height:100%;object-fit:cover;display:block;}
-  .file-icon{
-    position:relative;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    color:var(--accent, var(--text-muted));
-  }
-  .file-icon svg{width:34px;height:34px;}
-  .ext-badge{
-    font-family:var(--mono-font);
-    font-size:11px;
-    letter-spacing:.05em;
-    padding:2px 8px;
-    border-radius:5px;
-    border:1px solid currentColor;
-  }
-  .badge-compressed{
-    position:absolute;
-    top:6px;left:6px;
-    font-family:var(--mono-font);
-    font-size:10px;
-    letter-spacing:.03em;
-    color:var(--bg);
-    background:var(--teal);
-    padding:2px 6px;
-    border-radius:5px;
-    z-index:2;
-  }
-  .card-actions{
-    position:absolute;
-    top:6px;right:6px;
-    display:flex;
-    gap:5px;
-    z-index:2;
-  }
-  .card-actions button{
-    width:26px;height:26px;
-    border-radius:50%;
-    border:1px solid var(--border);
-    background:rgba(20,23,28,0.7);
-    color:var(--text);
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-    backdrop-filter:blur(2px);
-    transition:background .15s ease, color .15s ease, transform .1s ease;
-  }
-  .card-actions button svg{width:13px;height:13px;}
-  .card-actions button:hover{background:var(--brass);color:#1A1306;transform:scale(1.06);}
-  .btn-unmute{
-    position:absolute;
-    bottom:6px;right:6px;
-    width:28px;height:28px;
-    border-radius:50%;
-    border:1px solid var(--border);
-    background:rgba(20,23,28,0.75);
-    color:var(--text);
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-    z-index:2;
-    transition:background .15s ease, color .15s ease;
-  }
-  .btn-unmute svg{width:14px;height:14px;}
-  .btn-unmute.is-unmuted{background:var(--teal);color:#0D1F1D;}
-  .card-label{
-    padding:8px 10px 4px;
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-  }
-  .card-name{
-    font-size:12.5px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .card-size{
-    font-family:var(--mono-font);
-    font-size:11px;
-    color:var(--text-muted);
-  }
-  .card-actions-row{
-    display:none;
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 
-  /* ---------- Toolbar ---------- */
-  .toolbar{
-    position:fixed;
-    left:0;right:0;bottom:0;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-    padding:14px 24px;
-    background:rgba(20,23,28,0.92);
-    backdrop-filter:blur(8px);
-    border-top:1px solid var(--border);
-    z-index:5;
+  /* ─── HEADER ─── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
-  .toolbar-note{
-    font-size:12px;
-    color:var(--text-muted);
-    font-family:var(--mono-font);
-  }
-  .toolbar-actions{display:flex;gap:10px;align-items:center;}
-  .btn-secondary{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:11px 18px;
-    border-radius:999px;
-    font-family:var(--body-font);
-    font-size:14px;
-    font-weight:500;
-    cursor:pointer;
-    transition:border-color .15s ease, color .15s ease;
-  }
-  .btn-secondary:hover{border-color:var(--teal);color:var(--teal);}
-  .btn-seal{
-    display:flex;align-items:center;gap:8px;
-    background:var(--brass);
-    border:none;
-    color:#1A1306;
-    padding:11px 22px 11px 14px;
-    border-radius:999px;
-    font-family:var(--body-font);
-    font-size:14px;
-    font-weight:600;
-    cursor:pointer;
-    transition:transform .08s ease, background .15s ease;
-  }
-  .btn-seal:hover{background:#E6B364;}
-  .btn-seal:active{transform:scale(0.95);}
-  .seal-badge{
-    width:22px;height:22px;
-    border-radius:50%;
-    background:#1A1306;
-    color:var(--brass);
-    display:flex;align-items:center;justify-content:center;
-  }
-  .seal-badge svg{width:12px;height:12px;}
 
-  /* ---------- Toast ---------- */
-  .toast{
-    position:fixed;
-    bottom:84px;left:50%;
-    transform:translateX(-50%) translateY(8px);
-    background:var(--bg-card);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:10px 18px;
-    border-radius:999px;
-    font-size:13px;
-    z-index:10;
-    opacity:0;
-    transition:opacity .2s ease, transform .2s ease;
-    pointer-events:none;
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
-  .toast.is-visible{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  @media (max-width:560px){
-    .toolbar{flex-direction:column;align-items:stretch;}
-    .toolbar-actions{justify-content:stretch;}
-    .toolbar-actions button{flex:1;}
+  .header-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--text2);
   }
-  @media (prefers-reduced-motion: reduce){
-    *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+  }
+
+  .stat-pill span:first-child { color: var(--accent2); font-weight: 500; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    pointer-events: none;
+  }
+
+  input[type=search] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 9px 12px 9px 38px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type=search]:focus { border-color: var(--accent); }
+
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 9px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover { background: var(--surface3); border-color: var(--border2); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.25);
+  }
+  .btn-danger:hover { background: rgba(248,113,113,0.1); }
+
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.45; pointer-events: none; }
+
+  /* ─── DROP ZONE ─── */
+  #drop-zone {
+    margin: 0 2rem 1.5rem;
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+
+  #drop-zone:hover, #drop-zone.over {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  #drop-zone .dz-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+
+  #drop-zone h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+
+  #drop-zone p { color: var(--text2); font-size: 0.85rem; }
+
+  #file-input { display: none; }
+
+  /* ─── PROGRESS ─── */
+  #progress-wrap {
+    display: none;
+    margin: 0 2rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .progress-bar-track {
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 0.75rem 0 0.5rem;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 999px;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  #progress-text { font-size: 0.8rem; color: var(--text2); }
+
+  /* ─── FILTERS BAR ─── */
+  .filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 2rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+
+  .filter-chip:hover, .filter-chip.active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+
+  /* ─── GRID ─── */
+  #grid {
+    padding: 0 2rem 4rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .card-preview {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--surface2);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .file-icon {
+    font-size: 2.5rem;
+    opacity: 0.35;
+    flex-direction: column;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .file-ext-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--surface3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--text2);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .unmute-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    font-family: inherit;
+    transition: background 0.15s;
+    z-index: 2;
+  }
+  .unmute-btn:hover { background: rgba(255,255,255,0.2); }
+
+  .card-info {
+    padding: 0.75rem 0.875rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .card-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  .card-meta {
+    font-size: 0.72rem;
+    color: var(--text3);
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 0.875rem 0.875rem;
+  }
+
+  .card-dl-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .card-dl-btn:hover { background: var(--accent-glow); border-color: var(--accent); color: var(--accent2); }
+
+  .card-del-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text3);
+    font-size: 0.78rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .card-del-btn:hover { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+  /* ─── EMPTY STATE ─── */
+  #empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--text3);
+  }
+
+  #empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+  #empty-state p { font-size: 0.9rem; }
+
+  /* ─── LIGHTBOX ─── */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0,0,0,0.92);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  #lightbox.open { display: flex; }
+
+  #lightbox-inner {
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+  }
+
+  #lightbox-inner img,
+  #lightbox-inner video {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: var(--radius);
+    display: block;
+    object-fit: contain;
+  }
+
+  #lightbox-close {
+    position: absolute;
+    top: -2.5rem;
+    right: 0;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    font-family: inherit;
+  }
+  #lightbox-close:hover { opacity: 1; }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    color: var(--text);
+    transition: transform 0.3s;
+    z-index: 10000;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 999px; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .toolbar, .filter-bar, #drop-zone, #grid, #progress-wrap { padding-left: 1rem; padding-right: 1rem; }
+    #drop-zone { margin: 0 1rem 1.5rem; }
+    #progress-wrap { margin: 0 1rem 1.5rem; }
+    .header-stats { display: none; }
+    #grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   }
 </style>
 </head>
 <body>
-<noscript>This page needs JavaScript turned on to pack and open capsules.</noscript>
 
-<div class="page">
+<header>
+  <div class="logo">⬡ Vault</div>
+  <div class="header-stats">
+    <div class="stat-pill"><span id="stat-count">0</span><span>files</span></div>
+    <div class="stat-pill"><span id="stat-size">0 MB</span><span>total</span></div>
+  </div>
+</header>
 
-  <header class="hero">
-    <p class="eyebrow">Portable Archive</p>
-    <h1 class="title">File Capsule</h1>
-    <p class="subtitle">Pack your photos, video clips, and files into one HTML page. Seal it, hand it to GitHub or a friend — open the file and everything is already inside. No app, no upload, no waiting.</p>
-  </header>
-
-  <section class="intake">
-    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add files">
-      <span class="dropzone-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      <p class="dropzone-text"><strong>Drop files here</strong> or click to choose</p>
-      <p class="dropzone-hint">Photos display as images. Video clips autoplay on mute and loop. Everything else gets its own download button.</p>
-      <input type="file" id="fileInput" multiple hidden>
-    </div>
-
-    <div class="controls">
-      <label class="toggle">
-        <input type="checkbox" id="compressToggle" checked>
-        <span>Shrink large photos automatically</span>
-      </label>
-      <div class="control-row">
-        <label for="maxDimSelect">Max size</label>
-        <select id="maxDimSelect">
-          <option value="1280">1280px</option>
-          <option value="1600" selected>1600px</option>
-          <option value="1920">1920px</option>
-          <option value="2400">2400px</option>
-        </select>
-        <label for="qualitySlider">Quality</label>
-        <input type="range" id="qualitySlider" min="0.5" max="0.95" step="0.05" value="0.8">
-        <span id="qualityLabel">80%</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="gauge-section">
-    <div class="gauge-track"><div class="gauge-fill zone-safe" id="gaugeFill"></div></div>
-    <div class="gauge-meta">
-      <span id="gaugeText">0 files · ~0 MB packed</span>
-      <span id="gaugeWarning" class="gauge-warning" hidden>Over GitHub's 100MB file limit — remove a few files or compress more.</span>
-    </div>
-  </section>
-
-  <p class="progress" id="progressEl" hidden>Packing <span id="progressText"></span></p>
-
-  <section class="empty-state" id="emptyState">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
-    <h2>Your capsule is empty</h2>
-    <p>Add files above to start packing.</p>
-  </section>
-
-  <section class="gallery" id="gallery" hidden></section>
-
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="search" id="search" placeholder="Search files…">
+  </div>
+  <select id="sort-select">
+    <option value="newest">Newest first</option>
+    <option value="oldest">Oldest first</option>
+    <option value="name">Name A–Z</option>
+    <option value="size-desc">Largest first</option>
+    <option value="size-asc">Smallest first</option>
+  </select>
+  <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Upload Files
+  </button>
+  <button class="btn btn-secondary" id="dl-all-btn" onclick="downloadAll()" disabled>
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Download All
+  </button>
+  <button class="btn btn-danger" id="clear-btn" onclick="confirmClear()" style="display:none;">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    Clear All
+  </button>
+  <input type="file" id="file-input" multiple>
 </div>
 
-<footer class="toolbar">
-  <span class="toolbar-note">Photos &amp; videos work offline once sealed. Zip download needs internet.</span>
-  <div class="toolbar-actions">
-    <button class="btn-secondary" id="downloadAllBtn" type="button">Download all (.zip)</button>
-    <button class="btn-seal" id="sealBtn" type="button">
-      <span class="seal-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
-      Seal capsule
-    </button>
-  </div>
-</footer>
+<div id="drop-zone">
+  <div class="dz-icon">☁️</div>
+  <h3>Drop files here to upload</h3>
+  <p>Or click Upload Files — supports photos, videos, docs, and anything else · up to 2,500 files</p>
+</div>
 
-<div class="toast" id="toast"></div>
+<div id="progress-wrap">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:0.875rem; font-weight:500;">Saving files…</span>
+    <span id="progress-text">0 / 0</span>
+  </div>
+  <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-chip active" data-type="all" onclick="setFilter(this,'all')">All</button>
+  <button class="filter-chip" data-type="image" onclick="setFilter(this,'image')">🖼 Images</button>
+  <button class="filter-chip" data-type="video" onclick="setFilter(this,'video')">🎬 Videos</button>
+  <button class="filter-chip" data-type="audio" onclick="setFilter(this,'audio')">🎵 Audio</button>
+  <button class="filter-chip" data-type="doc" onclick="setFilter(this,'doc')">📄 Docs</button>
+  <button class="filter-chip" data-type="other" onclick="setFilter(this,'other')">📦 Other</button>
+</div>
+
+<div id="grid">
+  <div id="empty-state">
+    <div class="empty-icon">✨</div>
+    <p>Your vault is empty — upload files to get started</p>
+  </div>
+</div>
+
+<div id="lightbox">
+  <div id="lightbox-inner">
+    <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
-(function(){
-  "use strict";
+// ─── DB SETUP ───────────────────────────────────────────────────
+const DB_NAME = 'VaultDB';
+const STORE = 'files';
+let db;
+let allFiles = [];
+let currentFilter = 'all';
+let currentSort = 'newest';
+let searchQ = '';
 
-  var ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
-  var ICON_REMOVE   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  var ICON_MUTED    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 9l5 5M21 9l-5 5"/></svg>';
-  var ICON_UNMUTED  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a5 5 0 010 8"/><path d="M19 5a9 9 0 010 14"/></svg>';
-  var ICON_FILE     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>';
-
-  var EXT_ACCENT = {
-    mp3:'var(--teal)', wav:'var(--teal)', ogg:'var(--teal)', flac:'var(--teal)', m4a:'var(--teal)', aac:'var(--teal)',
-    zip:'var(--brass)', rar:'var(--brass)', '7z':'var(--brass)', tar:'var(--brass)', gz:'var(--brass)',
-    pdf:'var(--danger)', doc:'var(--danger)', docx:'var(--danger)'
-  };
-
-  var dropzone = document.getElementById('dropzone');
-  var fileInput = document.getElementById('fileInput');
-  var compressToggle = document.getElementById('compressToggle');
-  var maxDimSelect = document.getElementById('maxDimSelect');
-  var qualitySlider = document.getElementById('qualitySlider');
-  var qualityLabel = document.getElementById('qualityLabel');
-  var gaugeFill = document.getElementById('gaugeFill');
-  var gaugeText = document.getElementById('gaugeText');
-  var gaugeWarning = document.getElementById('gaugeWarning');
-  var progressEl = document.getElementById('progressEl');
-  var progressText = document.getElementById('progressText');
-  var emptyState = document.getElementById('emptyState');
-  var gallery = document.getElementById('gallery');
-  var downloadAllBtn = document.getElementById('downloadAllBtn');
-  var sealBtn = document.getElementById('sealBtn');
-  var toast = document.getElementById('toast');
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, function(c){
-      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
-    });
-  }
-
-  function extOf(name){
-    var i = name.lastIndexOf('.');
-    return i > -1 ? name.slice(i+1) : '';
-  }
-
-  function formatBytes(bytes){
-    if(!bytes) return '0 KB';
-    var units = ['B','KB','MB','GB'];
-    var i = 0;
-    var n = bytes;
-    while(n >= 1024 && i < units.length-1){ n /= 1024; i++; }
-    return (i===0 ? n : n.toFixed(1)) + ' ' + units[i];
-  }
-
-  function bytesFromDataUrl(dataUrl){
-    var idx = dataUrl.indexOf(',');
-    var base64 = idx > -1 ? dataUrl.slice(idx+1) : '';
-    var padding = (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
-    return Math.max(0, Math.round(base64.length * 3 / 4) - padding);
-  }
-
-  function readAsDataURL(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onload = function(){ resolve(reader.result); };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function loadImage(src){
-    return new Promise(function(resolve, reject){
-      var img = new Image();
-      img.onload = function(){ resolve(img); };
-      img.onerror = reject;
-      img.src = src;
-    });
-  }
-
-  function resizeImage(file, maxDim, quality){
-    return readAsDataURL(file).then(function(dataUrl){
-      return loadImage(dataUrl);
-    }).then(function(img){
-      var width = img.naturalWidth, height = img.naturalHeight;
-      if(Math.max(width, height) > maxDim){
-        var scale = maxDim / Math.max(width, height);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const s = d.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('name', 'name', { unique: false });
+        s.createIndex('addedAt', 'addedAt', { unique: false });
       }
-      var canvas = document.createElement('canvas');
-      canvas.width = width; canvas.height = height;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      return canvas.toDataURL('image/jpeg', quality);
-    });
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+function txStore(mode) {
+  return db.transaction(STORE, mode).objectStore(STORE);
+}
+
+function dbGetAll() {
+  return new Promise((res, rej) => {
+    const req = txStore('readonly').getAll();
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+function dbAdd(record) {
+  return new Promise((res, rej) => {
+    const req = txStore('readwrite').add(record);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((res, rej) => {
+    const req = txStore('readwrite').delete(id);
+    req.onsuccess = () => res();
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+function dbClear() {
+  return new Promise((res, rej) => {
+    const req = txStore('readwrite').clear();
+    req.onsuccess = () => res();
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+// ─── FILE HELPERS ────────────────────────────────────────────────
+function getFileType(mime, name) {
+  if (!mime) mime = '';
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
+  const docExts = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','json','xml','html','css','js','ts','py','rb','go','java','cpp','c','h','md','rtf','odt','ods','odp'];
+  if (docExts.includes(ext)) return 'doc';
+  return 'other';
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+  return (bytes/1024/1024/1024).toFixed(2) + ' GB';
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = e => res(e.target.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ─── UPLOAD ──────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', e => {
+  handleFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('click', () => document.getElementById('file-input').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('over');
+  const items = Array.from(e.dataTransfer.files);
+  if (items.length) handleFiles(items);
+});
+
+async function handleFiles(files) {
+  if (!files.length) return;
+  const MAX = 2500;
+  const remaining = MAX - allFiles.length;
+  if (remaining <= 0) { showToast('Vault is full (2,500 files max)'); return; }
+  if (files.length > remaining) {
+    files = files.slice(0, remaining);
+    showToast(`Only ${remaining} more files fit — uploading first ${remaining}`);
   }
 
-  function categoryFor(file){
-    if(file.type.indexOf('image/') === 0) return 'image';
-    if(file.type.indexOf('video/') === 0) return 'video';
-    return 'other';
-  }
+  const wrap = document.getElementById('progress-wrap');
+  const fill = document.getElementById('progress-fill');
+  const txt = document.getElementById('progress-text');
+  wrap.style.display = 'block';
 
-  function processFile(file){
-    var ext = extOf(file.name).toLowerCase();
-    var category = categoryFor(file);
-    var compressEnabled = compressToggle.checked;
-    var isCompressible = category === 'image' && ext !== 'svg' && ext !== 'gif' && file.size > 400 * 1024;
+  const BATCH = 10;
+  let done = 0;
 
-    if(compressEnabled && isCompressible){
-      var maxDim = parseInt(maxDimSelect.value, 10);
-      var quality = parseFloat(qualitySlider.value);
-      return resizeImage(file, maxDim, quality).then(function(dataUrl){
-        return {
-          name: file.name,
-          mime: 'image/jpeg',
-          category: category,
-          dataUrl: dataUrl,
-          size: bytesFromDataUrl(dataUrl),
-          compressed: true
+  for (let i = 0; i < files.length; i += BATCH) {
+    const batch = files.slice(i, i + BATCH);
+    await Promise.all(batch.map(async f => {
+      try {
+        const data = await fileToBase64(f);
+        const record = {
+          name: f.name,
+          size: f.size,
+          mime: f.type,
+          fileType: getFileType(f.type, f.name),
+          data,
+          addedAt: Date.now()
         };
-      }).catch(function(){
-        return readAsDataURL(file).then(function(dataUrl){
-          return { name:file.name, mime:file.type||'application/octet-stream', category:category, dataUrl:dataUrl, size:bytesFromDataUrl(dataUrl), compressed:false };
-        });
-      });
-    }
+        const id = await dbAdd(record);
+        record.id = id;
+        allFiles.push(record);
+      } catch(e) { console.warn('skip', f.name, e); }
+      done++;
+      const pct = Math.round((done / files.length) * 100);
+      fill.style.width = pct + '%';
+      txt.textContent = `${done} / ${files.length}`;
+    }));
+    // yield to browser
+    await new Promise(r => setTimeout(r, 0));
+  }
 
-    return readAsDataURL(file).then(function(dataUrl){
-      return {
-        name: file.name,
-        mime: file.type || 'application/octet-stream',
-        category: category,
-        dataUrl: dataUrl,
-        size: bytesFromDataUrl(dataUrl),
-        compressed: false
-      };
+  wrap.style.display = 'none';
+  fill.style.width = '0%';
+  renderGrid();
+  updateStats();
+  showToast(`Saved ${done} file${done !== 1 ? 's' : ''}`);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────
+function getFiltered() {
+  let list = [...allFiles];
+
+  if (currentFilter !== 'all') {
+    list = list.filter(f => f.fileType === currentFilter);
+  }
+
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    list = list.filter(f => f.name.toLowerCase().includes(q));
+  }
+
+  list.sort((a, b) => {
+    if (currentSort === 'newest') return b.addedAt - a.addedAt;
+    if (currentSort === 'oldest') return a.addedAt - b.addedAt;
+    if (currentSort === 'name') return a.name.localeCompare(b.name);
+    if (currentSort === 'size-desc') return b.size - a.size;
+    if (currentSort === 'size-asc') return a.size - b.size;
+    return 0;
+  });
+
+  return list;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const list = getFiltered();
+
+  const empty = document.getElementById('empty-state');
+  const dlBtn = document.getElementById('dl-all-btn');
+  const clrBtn = document.getElementById('clear-btn');
+
+  if (!allFiles.length) {
+    grid.innerHTML = '';
+    grid.appendChild(empty);
+    dlBtn.disabled = true;
+    clrBtn.style.display = 'none';
+    return;
+  }
+
+  dlBtn.disabled = false;
+  clrBtn.style.display = '';
+
+  if (!list.length) {
+    grid.innerHTML = '<div id="empty-state"><div class="empty-icon">🔍</div><p>No files match your search</p></div>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  list.forEach(f => {
+    const card = buildCard(f);
+    frag.appendChild(card);
+  });
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+
+  // Start all videos
+  grid.querySelectorAll('video').forEach(v => {
+    v.muted = true;
+    v.play().catch(() => {});
+  });
+}
+
+function buildCard(f) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  // Preview
+  const preview = document.createElement('div');
+  preview.className = 'card-preview';
+
+  if (f.fileType === 'image') {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.src = f.data;
+    img.alt = f.name;
+    img.style.cursor = 'pointer';
+    img.onclick = () => openLightbox(f);
+    preview.appendChild(img);
+  } else if (f.fileType === 'video') {
+    const vid = document.createElement('video');
+    vid.src = f.data;
+    vid.muted = true;
+    vid.loop = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.style.cursor = 'pointer';
+    vid.onclick = () => openLightbox(f);
+    preview.appendChild(vid);
+    // Unmute button
+    const umBtn = document.createElement('button');
+    umBtn.className = 'unmute-btn';
+    umBtn.textContent = '🔇 Unmute';
+    umBtn.onclick = e => {
+      e.stopPropagation();
+      vid.muted = !vid.muted;
+      umBtn.textContent = vid.muted ? '🔇 Unmute' : '🔊 Mute';
+    };
+    preview.appendChild(umBtn);
+  } else if (f.fileType === 'audio') {
+    const icon = document.createElement('div');
+    icon.className = 'file-icon';
+    icon.innerHTML = '<div style="font-size:2.2rem;">🎵</div><div class="file-ext-badge">' + getExt(f.name) + '</div>';
+    preview.appendChild(icon);
+    const aud = document.createElement('audio');
+    aud.src = f.data;
+    aud.controls = true;
+    aud.style.cssText = 'position:absolute;bottom:8px;left:8px;right:8px;width:calc(100% - 16px);';
+    preview.appendChild(aud);
+  } else {
+    const icon = document.createElement('div');
+    icon.className = 'file-icon';
+    icon.innerHTML = getFileEmoji(f) + '<div class="file-ext-badge">' + getExt(f.name) + '</div>';
+    preview.appendChild(icon);
+  }
+
+  // Info
+  const info = document.createElement('div');
+  info.className = 'card-info';
+  info.innerHTML = `<div class="card-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div><div class="card-meta">${formatSize(f.size)}</div>`;
+
+  // Actions
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'card-dl-btn';
+  dlBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download`;
+  dlBtn.onclick = () => downloadFile(f);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'card-del-btn';
+  delBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+  delBtn.title = 'Delete file';
+  delBtn.onclick = () => deleteFile(f.id, card);
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(delBtn);
+
+  card.appendChild(preview);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function getExt(name) {
+  const parts = name.split('.');
+  return parts.length > 1 ? parts.pop().toUpperCase().slice(0, 5) : 'FILE';
+}
+
+function getFileEmoji(f) {
+  const ext = getExt(f.name).toLowerCase();
+  const map = { pdf: '📕', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', ppt: '📊', pptx: '📊', txt: '📄', csv: '📊', json: '⚙️', xml: '⚙️', html: '🌐', css: '🎨', js: '⚡', ts: '⚡', py: '🐍', zip: '📦', rar: '📦', '7z': '📦', tar: '📦', gz: '📦' };
+  return '<div style="font-size:2.2rem;">' + (map[ext] || '📁') + '</div>';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── STATS ───────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-count').textContent = allFiles.length.toLocaleString();
+  const total = allFiles.reduce((s, f) => s + f.size, 0);
+  document.getElementById('stat-size').textContent = formatSize(total);
+}
+
+// ─── FILTER / SEARCH / SORT ──────────────────────────────────────
+function setFilter(el, type) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = type;
+  renderGrid();
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQ = e.target.value.trim();
+  renderGrid();
+});
+
+document.getElementById('sort-select').addEventListener('change', e => {
+  currentSort = e.target.value;
+  renderGrid();
+});
+
+// ─── DOWNLOAD ────────────────────────────────────────────────────
+function downloadFile(f) {
+  const a = document.createElement('a');
+  a.href = f.data;
+  a.download = f.name;
+  a.click();
+}
+
+async function downloadAll() {
+  const list = getFiltered();
+  if (!list.length) return;
+
+  if (list.length > 200) {
+    showToast('Downloading ' + list.length + ' files one by one…');
+    for (let i = 0; i < list.length; i++) {
+      setTimeout(() => downloadFile(list[i]), i * 80);
+    }
+    return;
+  }
+
+  // Use JSZip for smaller sets
+  showToast('Preparing ZIP…');
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+  script.onload = async () => {
+    const zip = new JSZip();
+    const names = {};
+    list.forEach(f => {
+      let name = f.name;
+      if (names[name]) { names[name]++; const p = name.lastIndexOf('.'); name = p > -1 ? name.slice(0,p) + '_' + names[f.name] + name.slice(p) : name + '_' + names[f.name]; } else { names[name] = 1; }
+      const b64 = f.data.split(',')[1];
+      zip.file(name, b64, { base64: true });
     });
-  }
-
-  function cardTemplate(r){
-    var safeName = escapeHtml(r.name);
-    var sizeLabel = formatBytes(r.size);
-    var mediaHtml = '';
-
-    if(r.category === 'image'){
-      mediaHtml = '<img class="thumb" src="' + r.dataUrl + '" alt="' + safeName + '" loading="lazy">';
-    } else if(r.category === 'video'){
-      mediaHtml = '<video class="thumb" src="' + r.dataUrl + '" autoplay muted loop playsinline></video>' +
-        '<button class="btn-unmute is-muted" type="button" aria-label="Unmute video">' + ICON_MUTED + '</button>';
-    } else {
-      var ext = extOf(r.name).toUpperCase() || 'FILE';
-      var accent = EXT_ACCENT[extOf(r.name).toLowerCase()] || 'var(--text-muted)';
-      mediaHtml = '<a class="file-data" href="' + r.dataUrl + '" hidden></a>' +
-        '<div class="file-icon" style="--accent:' + accent + '">' + ICON_FILE +
-        '<span class="ext-badge">' + escapeHtml(ext.slice(0,4)) + '</span></div>';
-    }
-
-    return '<div class="card" data-name="' + safeName + '" data-size="' + r.size + '" data-mime="' + escapeHtml(r.mime) + '" data-category="' + r.category + '">' +
-      '<div class="thumb-wrap">' + mediaHtml + (r.compressed ? '<span class="badge-compressed">compressed</span>' : '') + '</div>' +
-      '<div class="card-label">' +
-        '<span class="card-name" title="' + safeName + '">' + safeName + '</span>' +
-        '<span class="card-size">' + sizeLabel + '</span>' +
-      '</div>' +
-      '<div class="card-actions">' +
-        '<button class="btn-download" type="button" aria-label="Download ' + safeName + '">' + ICON_DOWNLOAD + '</button>' +
-        '<button class="btn-remove" type="button" aria-label="Remove ' + safeName + '">' + ICON_REMOVE + '</button>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function createCard(r){
-    var wrapper = document.createElement('div');
-    wrapper.innerHTML = cardTemplate(r);
-    return wrapper.firstElementChild;
-  }
-
-  function getCardDataUrl(card){
-    var el = card.querySelector('img.thumb, video.thumb, a.file-data');
-    if(!el) return '';
-    return el.tagName === 'A' ? el.getAttribute('href') : el.getAttribute('src');
-  }
-
-  function wireCard(card){
-    var downloadBtn = card.querySelector('.btn-download');
-    var removeBtn = card.querySelector('.btn-remove');
-    var unmuteBtn = card.querySelector('.btn-unmute');
-    if(downloadBtn) downloadBtn.addEventListener('click', function(){ downloadCard(card); });
-    if(removeBtn) removeBtn.addEventListener('click', function(){ removeCard(card); });
-    if(unmuteBtn){
-      var video = card.querySelector('video');
-      unmuteBtn.addEventListener('click', function(){
-        video.muted = !video.muted;
-        unmuteBtn.classList.toggle('is-unmuted', !video.muted);
-        unmuteBtn.classList.toggle('is-muted', video.muted);
-        unmuteBtn.innerHTML = video.muted ? ICON_MUTED : ICON_UNMUTED;
-        unmuteBtn.setAttribute('aria-label', video.muted ? 'Unmute video' : 'Mute video');
-      });
-    }
-  }
-
-  function removeCard(card){
-    card.remove();
-    updateGauge();
-  }
-
-  function dataUrlToBlob(dataUrl){
-    var commaIdx = dataUrl.indexOf(',');
-    var header = dataUrl.slice(0, commaIdx);
-    var base64 = dataUrl.slice(commaIdx+1);
-    var mimeMatch = header.match(/data:(.*?);base64/);
-    var mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
-    var binary = atob(base64);
-    var len = binary.length;
-    var bytes = new Uint8Array(len);
-    for(var i=0;i<len;i++){ bytes[i] = binary.charCodeAt(i); }
-    return new Blob([bytes], { type: mime });
-  }
-
-  function triggerDownload(blob, filename){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
+    a.download = 'vault-export.zip';
     a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-  }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    showToast('ZIP downloaded!');
+  };
+  document.head.appendChild(script);
+}
 
-  function downloadCard(card){
-    var dataUrl = getCardDataUrl(card);
-    if(!dataUrl) return;
-    var blob = dataUrlToBlob(dataUrl);
-    triggerDownload(blob, card.dataset.name || 'file');
-    showToast('Downloading ' + card.dataset.name);
-  }
+// ─── DELETE ──────────────────────────────────────────────────────
+async function deleteFile(id, card) {
+  await dbDelete(id);
+  allFiles = allFiles.filter(f => f.id !== id);
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.9)';
+  card.style.transition = 'all 0.2s';
+  setTimeout(() => { card.remove(); updateStats(); if (!allFiles.length) renderGrid(); }, 200);
+}
 
-  function dateStamp(){
-    var d = new Date();
-    function pad(n){ return String(n).padStart(2,'0'); }
-    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
-  }
-
-  function downloadAll(){
-    var cards = document.querySelectorAll('.card');
-    if(!cards.length){ showToast('Add some files first'); return; }
-    if(typeof JSZip === 'undefined'){ showToast('Zip tool failed to load — check your connection'); return; }
-    showToast('Packing zip…');
-    var zip = new JSZip();
-    var usedNames = {};
-    cards.forEach(function(card){
-      var dataUrl = getCardDataUrl(card);
-      var commaIdx = dataUrl.indexOf(',');
-      var base64 = dataUrl.slice(commaIdx+1);
-      var name = card.dataset.name || 'file';
-      if(usedNames.hasOwnProperty(name)){
-        usedNames[name] += 1;
-        var dot = name.lastIndexOf('.');
-        name = dot > 0 ? (name.slice(0,dot) + ' (' + usedNames[name] + ')' + name.slice(dot)) : (name + ' (' + usedNames[name] + ')');
-      } else {
-        usedNames[name] = 0;
-      }
-      zip.file(name, base64, { base64: true });
-    });
-    zip.generateAsync({ type:'blob' }).then(function(blob){
-      triggerDownload(blob, 'capsule-files-' + dateStamp() + '.zip');
-      showToast('Zip downloaded');
-    }).catch(function(){
-      showToast('Could not build the zip — try downloading files individually');
-    });
-  }
-
-  function sealCapsule(){
-    var cards = document.querySelectorAll('.card');
-    if(!cards.length){ showToast('Add some files first'); return; }
-    fileInput.value = '';
-    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-    var blob = new Blob([html], { type:'text/html' });
-    triggerDownload(blob, 'capsule-' + dateStamp() + '.html');
-    showToast('Capsule sealed — check your downloads');
-  }
-
-  var toastTimer = null;
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add('is-visible');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ toast.classList.remove('is-visible'); }, 2600);
-  }
-
-  function updateGauge(){
-    var cards = document.querySelectorAll('.card');
-    var totalSize = 0;
-    cards.forEach(function(c){ totalSize += parseInt(c.dataset.size || '0', 10); });
-    var encodedEstimate = totalSize * 4 / 3;
-    var mb = encodedEstimate / (1024*1024);
-    var pct = Math.min(100, (mb/100)*100);
-    gaugeFill.style.width = pct + '%';
-    gaugeFill.classList.remove('zone-safe','zone-warn','zone-danger');
-    gaugeFill.classList.add(mb < 50 ? 'zone-safe' : (mb < 90 ? 'zone-warn' : 'zone-danger'));
-    gaugeText.textContent = cards.length + (cards.length===1 ? ' file' : ' files') + ' · ~' + mb.toFixed(1) + ' MB packed';
-    gaugeWarning.hidden = mb < 95;
-    emptyState.hidden = cards.length > 0;
-    gallery.hidden = cards.length === 0;
-  }
-
-  function handleFiles(fileList){
-    var files = Array.prototype.slice.call(fileList);
-    if(!files.length) return;
-    progressEl.hidden = false;
-    var done = 0;
-    progressText.textContent = '0 / ' + files.length + '…';
-    var tasks = files.map(function(file){
-      return processFile(file).then(function(r){
-        done++;
-        progressText.textContent = done + ' / ' + files.length + '…';
-        return r;
-      }).catch(function(err){
-        done++;
-        console.error('Could not pack', file.name, err);
-        return null;
-      });
-    });
-    Promise.all(tasks).then(function(results){
-      var frag = document.createDocumentFragment();
-      results.forEach(function(r){
-        if(!r) return;
-        var card = createCard(r);
-        wireCard(card);
-        frag.appendChild(card);
-      });
-      gallery.appendChild(frag);
-      progressEl.hidden = true;
-      updateGauge();
-    });
-  }
-
-  // ---- wire up static controls ----
-  dropzone.addEventListener('click', function(){ fileInput.click(); });
-  dropzone.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileInput.click(); }
+function confirmClear() {
+  if (!confirm(`Delete all ${allFiles.length} files from your vault? This cannot be undone.`)) return;
+  dbClear().then(() => {
+    allFiles = [];
+    renderGrid();
+    updateStats();
+    showToast('Vault cleared');
   });
-  dropzone.addEventListener('dragover', function(e){ e.preventDefault(); dropzone.classList.add('is-dragover'); });
-  dropzone.addEventListener('dragleave', function(){ dropzone.classList.remove('is-dragover'); });
-  dropzone.addEventListener('drop', function(e){
-    e.preventDefault();
-    dropzone.classList.remove('is-dragover');
-    handleFiles(e.dataTransfer.files);
-  });
-  fileInput.addEventListener('change', function(e){ handleFiles(e.target.files); });
-  window.addEventListener('dragover', function(e){ e.preventDefault(); });
-  window.addEventListener('drop', function(e){ if(e.target !== dropzone) e.preventDefault(); });
+}
 
-  qualitySlider.addEventListener('input', function(){
-    qualityLabel.textContent = Math.round(parseFloat(qualitySlider.value) * 100) + '%';
-  });
+// ─── LIGHTBOX ────────────────────────────────────────────────────
+function openLightbox(f) {
+  const lb = document.getElementById('lightbox');
+  const inner = document.getElementById('lightbox-inner');
+  // Remove previous media
+  inner.querySelectorAll('img, video').forEach(el => el.remove());
 
-  downloadAllBtn.addEventListener('click', downloadAll);
-  sealBtn.addEventListener('click', sealCapsule);
+  if (f.fileType === 'image') {
+    const img = document.createElement('img');
+    img.src = f.data;
+    img.alt = f.name;
+    inner.appendChild(img);
+  } else if (f.fileType === 'video') {
+    const vid = document.createElement('video');
+    vid.src = f.data;
+    vid.controls = true;
+    vid.autoplay = true;
+    vid.loop = true;
+    inner.appendChild(vid);
+  }
 
-  // ---- re-wire any cards already baked into this page (a previously sealed capsule) ----
-  document.querySelectorAll('.card').forEach(wireCard);
-  updateGauge();
+  lb.classList.add('open');
+}
 
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  lb.classList.remove('open');
+  lb.querySelectorAll('video').forEach(v => v.pause());
+}
+
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ─── TOAST ───────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+(async () => {
+  await openDB();
+  allFiles = await dbGetAll();
+  renderGrid();
+  updateStats();
 })();
 </script>
 </body>
