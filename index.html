@@ -38,6 +38,8 @@
   .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
   .btn-danger{background:rgba(248,113,113,0.1);color:var(--danger);border:1px solid rgba(248,113,113,0.2)}
   .btn-danger:hover{background:rgba(248,113,113,0.18)}
+  .btn-copy{background:linear-gradient(135deg, var(--green), #059669); color:#000;}
+  .btn-copy:hover{opacity:.85;transform:translateY(-1px);box-shadow:0 0 24px rgba(52,211,153,0.25)}
 
   .search-wrap{flex:1;min-width:160px;position:relative}
   .search-wrap input{width:100%;padding:8px 14px 8px 34px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12px;font-family:'Space Grotesk',sans-serif;outline:none;transition:border-color .15s}
@@ -125,6 +127,7 @@
 
 <div class="toolbar">
   <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">＋ Add Files</button>
+  <button class="btn btn-copy" onclick="copyUpdatedCode()">📋 Copy HTML Code</button>
   <button class="btn btn-ghost" onclick="downloadAll()">⬇ Download All</button>
   <button class="btn btn-danger" onclick="clearAll()">🗑 Clear All</button>
   <div class="search-wrap">
@@ -376,6 +379,50 @@ async function ingestFiles(fileList){
   buildFiltered();
   relayout();
   toast(`✓ Added ${files.length.toLocaleString()} file${files.length>1?'s':''}`);
+}
+
+// ══════════════════════════════════════════════
+//  Copy HTML Code Feature
+// ══════════════════════════════════════════════
+async function copyUpdatedCode() {
+  if (allFiles.length === 0) {
+    return toast('No files added yet! Add some files first.');
+  }
+
+  // 1. Build the updated array string for the code
+  const fileNames = allFiles.map(f => `  "${f.name}"`);
+  const newArrayStr = `const GITHUB_FILES = [\n${fileNames.join(',\n')}\n];`;
+
+  // 2. Clone the whole page so we can clean it up before copying
+  const clone = document.documentElement.cloneNode(true);
+
+  // 3. Reset the visual UI in the cloned document back to its default state
+  clone.querySelector('#statCount').textContent = '0';
+  clone.querySelector('#statShown').textContent = '0';
+  clone.querySelector('#statSize').textContent = '0 B';
+  clone.querySelector('#gridWindow').innerHTML = '';
+  clone.querySelector('#empty').className = '';
+  clone.querySelector('#progressBar').className = '';
+  clone.querySelector('#searchInput').value = '';
+  clone.querySelectorAll('.tab').forEach((t, i) => {
+    if (i === 0) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+
+  // 4. Construct the raw HTML string
+  let htmlString = '<!DOCTYPE html>\n<html lang="en">\n' + clone.innerHTML + '\n</html>';
+
+  // 5. Use Regex to swap the old GITHUB_FILES array with our newly generated one
+  htmlString = htmlString.replace(/const GITHUB_FILES = \[[\s\S]*?\];/, newArrayStr);
+
+  // 6. Copy it to the clipboard!
+  try {
+    await navigator.clipboard.writeText(htmlString);
+    toast('✓ Code copied! Paste into your GitHub index.html');
+  } catch (err) {
+    toast('❌ Failed to copy. See console.');
+    console.error(err);
+  }
 }
 
 // ══════════════════════════════════════════════
