@@ -35,10 +35,12 @@
   .btn-copy{background:linear-gradient(135deg, var(--green), #059669); color:#000;}
   .btn-copy:hover{opacity:.85;transform:translateY(-1px);box-shadow:0 0 24px rgba(52,211,153,0.25)}
 
-  .search-wrap{flex:1;min-width:160px;position:relative}
-  .search-wrap input{width:100%;padding:8px 14px 8px 34px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12px;font-family:'Space Grotesk',sans-serif;outline:none;transition:border-color .15s}
+  .search-wrap{flex:1;min-width:160px;position:relative;display:flex;align-items:center;}
+  .search-wrap input{width:100%;padding:8px 30px 8px 34px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12px;font-family:'Space Grotesk',sans-serif;outline:none;transition:border-color .15s}
   .search-wrap input:focus{border-color:var(--accent)}
   .search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none}
+  #clearSearchBtn{position:absolute;right:8px;background:transparent;border:none;color:var(--muted);font-size:12px;cursor:pointer;display:none;padding:4px;border-radius:50%;transition:0.2s;}
+  #clearSearchBtn:hover{color:var(--text);background:var(--border);}
 
   .filter-tabs{display:flex;gap:5px;flex-wrap:wrap}
   .tab{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:'Space Grotesk',sans-serif}
@@ -53,6 +55,7 @@
   #scrollPort{
     margin:16px 24px 40px;
     overflow-y:auto;
+    outline: none; /* remove outline when focused for arrow keys */
   }
   #gridSpacer{
     position:relative;
@@ -132,6 +135,7 @@
   <button class="btn btn-danger" onclick="clearAll()">🗑 Clear All</button>
   <div class="search-wrap">
     <input type="text" id="searchInput" placeholder="Search files…" oninput="onFilterChange()">
+    <button id="clearSearchBtn" onclick="clearSearchText()">✕</button>
   </div>
   <div class="filter-tabs">
     <button class="tab active" onclick="setFilter('all',this)">All</button>
@@ -143,7 +147,7 @@
   </div>
 </div>
 
-<div id="scrollPort">
+<div id="scrollPort" tabindex="0">
   <div id="gridSpacer">
     <div id="gridWindow"></div>
   </div>
@@ -193,7 +197,7 @@ let filtered=[];
 let objURLs={};       
 let currentFilter='all';
 let visibleStart=0,visibleEnd=0;
-let selectedId = null; // Keeps track of what file is clicked
+let selectedId = null; 
 
 let COLS=5, CARD_H=230, GAP=14;
 
@@ -293,7 +297,6 @@ function renderVisible(){
     const url=getURL(rec);
     const card=document.createElement('div');
     
-    // Add selected class if it's the currently selected file
     const isSelected = (selectedId === rec.id) ? ' selected' : '';
     card.className = 'card' + isSelected;
     card.style.height = CARD_H+'px';
@@ -310,9 +313,6 @@ function renderVisible(){
       media=`<div class="card-media"><span class="file-icon">${icon(c,rec.type)}</span></div>`;
     }
 
-    const sid=CSS.escape(rec.id);
-    
-    // Click events added to the entire card
     card.setAttribute('onclick', `selectCard(event, ${JSON.stringify(rec.id)})`);
     card.setAttribute('ondblclick', `openCard(${JSON.stringify(rec.id)})`);
 
@@ -336,7 +336,7 @@ function escHtml(s){
 }
 
 function toggleMute(e, vid, btn){
-  e.stopPropagation(); // Stop clicking this from selecting the file
+  e.stopPropagation(); 
   const v=document.getElementById(vid);
   if(!v)return;
   v.muted=!v.muted;
@@ -356,18 +356,30 @@ PORT.addEventListener('scroll',renderVisible,{passive:true});
 window.addEventListener('resize',()=>{readLayout();sizePort();setSpacerH();visibleStart=-1;visibleEnd=-1;renderVisible();});
 
 // ══════════════════════════════════════════════
-//  Selection & Quick Look (Spacebar)
+//  Selection, Arrow Keys & Quick Look
 // ══════════════════════════════════════════════
 function selectCard(e, id) {
   selectedId = id;
-  visibleStart=-1;visibleEnd=-1; // Force re-render to update blue highlight
+  PORT.focus(); // Give focus to the scrolling area so arrow keys work immediately
+  visibleStart=-1;visibleEnd=-1; 
   renderVisible();
 }
 
 function openCard(id) {
   const rec = allFiles.find(f => f.id === id);
-  if(rec) {
-    window.open(getURL(rec), '_blank');
+  if(rec) window.open(getURL(rec), '_blank');
+}
+
+function scrollToSelection(index) {
+  if (index < 0 || index >= filtered.length) return;
+  const rowIndex = Math.floor(index / COLS);
+  const cardTop = rowIndex * rowH();
+  const cardBottom = cardTop + CARD_H;
+  
+  if (cardTop < PORT.scrollTop) {
+    PORT.scrollTop = cardTop; // Scroll up
+  } else if (cardBottom > PORT.scrollTop + PORT.clientHeight) {
+    PORT.scrollTop = cardBottom - PORT.clientHeight; // Scroll down
   }
 }
 
@@ -381,17 +393,9 @@ function openPreview() {
   const c = cat(rec.type);
   const pc = document.getElementById('previewContent');
 
-  if(c === 'image') {
-    pc.innerHTML = `<img src="${url}">`;
-  } else if(c === 'video') {
-    pc.innerHTML = `<video src="${url}" controls autoplay></video>`;
-  } else {
-    pc.innerHTML = `
-      <div style="text-align:center">
-        <div class="file-icon">${icon(c, rec.type)}</div>
-        <div class="preview-name">${escHtml(rec.name)}</div>
-      </div>`;
-  }
+  if(c === 'image') pc.innerHTML = `<img src="${url}">`;
+  else if(c === 'video') pc.innerHTML = `<video src="${url}" controls autoplay></video>`;
+  else pc.innerHTML = `<div style="text-align:center"><div class="file-icon">${icon(c, rec.type)}</div><div class="preview-name">${escHtml(rec.name)}</div></div>`;
 
   document.getElementById('previewOverlay').classList.add('show');
   previewOpen = true;
@@ -399,23 +403,44 @@ function openPreview() {
 
 function closePreview() {
   document.getElementById('previewOverlay').classList.remove('show');
-  document.getElementById('previewContent').innerHTML = ''; // Stops videos
+  document.getElementById('previewContent').innerHTML = ''; 
   previewOpen = false;
 }
 
 document.addEventListener('keydown', e => {
-  // If user is typing in the search bar, ignore spacebar logic
-  if(e.target.tagName === 'INPUT') return;
+  if(e.target.tagName === 'INPUT') return; // Ignore if typing in search bar
 
   if (e.code === 'Space') {
-    e.preventDefault(); // Stop window from scrolling down
-    if (previewOpen) {
-      closePreview();
-    } else if (selectedId) {
-      openPreview();
-    }
+    e.preventDefault(); 
+    if (previewOpen) closePreview();
+    else if (selectedId) openPreview();
   } else if (e.code === 'Escape' && previewOpen) {
     closePreview();
+  } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+    if (!filtered.length || previewOpen) return;
+    e.preventDefault(); // Stop window scrolling natively
+
+    let currentIndex = filtered.findIndex(f => f.id === selectedId);
+    
+    // If nothing is selected yet, start at the first item
+    if (currentIndex === -1) {
+      currentIndex = 0;
+    } else {
+      if (e.code === 'ArrowRight') currentIndex++;
+      else if (e.code === 'ArrowLeft') currentIndex--;
+      else if (e.code === 'ArrowDown') currentIndex += COLS;
+      else if (e.code === 'ArrowUp') currentIndex -= COLS;
+    }
+
+    // Keep it within bounds
+    if (currentIndex < 0) currentIndex = 0;
+    if (currentIndex >= filtered.length) currentIndex = filtered.length - 1;
+
+    selectedId = filtered[currentIndex].id;
+    scrollToSelection(currentIndex);
+    
+    visibleStart = -1; visibleEnd = -1; // Force re-render to highlight
+    renderVisible();
   }
 });
 
@@ -445,9 +470,23 @@ function setFilter(f,el){
 }
 
 function onFilterChange(){
+  const searchBox = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('clearSearchBtn');
+  
+  // Show/Hide the clear button
+  if(searchBox.value.length > 0) clearBtn.style.display = 'block';
+  else clearBtn.style.display = 'none';
+
   buildFiltered();
   PORT.scrollTop=0;
   relayout();
+}
+
+function clearSearchText() {
+  const searchBox = document.getElementById('searchInput');
+  searchBox.value = '';
+  searchBox.focus(); // Keep user in the search bar
+  onFilterChange();
 }
 
 // ══════════════════════════════════════════════
@@ -486,14 +525,14 @@ async function copyUpdatedCode() {
 
   const clone = document.documentElement.cloneNode(true);
 
-  // Clear visual state before copying to github
   clone.querySelector('#statCount').textContent = '0';
   clone.querySelector('#statShown').textContent = '0';
   clone.querySelector('#statSize').textContent = '0 B';
-  clone.querySelector('#gridWindow').innerHTML = ''; // This also wipes out any selected states!
+  clone.querySelector('#gridWindow').innerHTML = ''; 
   clone.querySelector('#empty').className = '';
   clone.querySelector('#progressBar').className = '';
   clone.querySelector('#searchInput').value = '';
+  clone.querySelector('#clearSearchBtn').style.display = 'none';
   clone.querySelector('#previewOverlay').classList.remove('show');
   clone.querySelector('#previewContent').innerHTML = '';
   clone.querySelectorAll('.tab').forEach((t, i) => {
@@ -556,14 +595,14 @@ async function preloadFromGitHub() {
 //  Download 
 // ══════════════════════════════════════════════
 function dlOne(e, id){
-  e.stopPropagation(); // Stops card from selecting when clicking save
+  e.stopPropagation(); 
   const rec=allFiles.find(f=>f.id===id);
   if(!rec)return;
   
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = getURL(rec);
-  a.download = rec.name;
+  a.download = rec.name; // Forces the browser to download instead of open
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -588,11 +627,11 @@ async function downloadAll(){
 //  Delete
 // ══════════════════════════════════════════════
 async function delOne(e, id){
-  e.stopPropagation(); // Stops card from selecting when clicking delete
+  e.stopPropagation(); 
   if(objURLs[id]){URL.revokeObjectURL(objURLs[id]);delete objURLs[id];}
   allFiles=allFiles.filter(f=>f.id!==id);
   await dbDelete(id);
-  if(selectedId === id) selectedId = null; // Clear selection if deleted
+  if(selectedId === id) selectedId = null; 
   buildFiltered();
   relayout();
 }
@@ -661,6 +700,7 @@ async function init(){
   }
   buildFiltered();
   relayout();
+  PORT.focus(); // Set focus to scroll area initially for immediate arrow key use
 }
 init();
 </script>
