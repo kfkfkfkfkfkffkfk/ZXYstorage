@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MY GITHUB VAULT</title>
+<title>ZXYstorage</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   :root {
@@ -19,45 +19,28 @@
   body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
   header{position:sticky;top:0;z-index:100;background:rgba(8,11,18,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
   
-  /* --- NEW COOL LOGO STYLES --- */
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    cursor: default;
+  /* --- CYBERPUNK 3D HOLOGRAPHIC LOGO --- */
+  .logo { display:flex; align-items:center; gap:14px; cursor:default; perspective:800px; }
+  
+  .logo-cube { width:22px; height:22px; position:relative; transform-style:preserve-3d; animation:floatCube 6s ease-in-out infinite; }
+  .logo-cube::before, .logo-cube::after { content:''; position:absolute; inset:0; border:2px solid var(--accent); border-radius:5px; transition:0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .logo-cube::after { border-color:var(--green); transform:translateZ(-8px) rotate(15deg); filter:blur(1px); opacity:0.6; }
+  
+  .logo:hover .logo-cube::before { transform:translateZ(12px) rotate(-15deg); border-color:var(--accent2); box-shadow:0 0 20px rgba(167, 139, 250, 0.6); }
+  .logo:hover .logo-cube::after { transform:translateZ(-16px) rotate(35deg) scale(1.2); opacity:1; filter:blur(2px); border-color:var(--accent); }
+  
+  @keyframes floatCube {
+    0%, 100% { transform: translateY(0) rotateX(15deg) rotateY(15deg); }
+    50% { transform: translateY(-4px) rotateX(-15deg) rotateY(-15deg); }
   }
-  .logo-icon {
-    color: var(--accent2);
-    display: inline-block;
-    animation: spinHex 12s linear infinite;
-    filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.6));
-    font-size: 20px;
-  }
-  .logo:hover .logo-icon {
-    animation: spinHex 2s linear infinite; /* Spins faster on hover! */
-  }
-  .logo-text {
-    background: linear-gradient(270deg, var(--accent), var(--accent2), var(--green), var(--accent));
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gradientShift 6s ease infinite;
-    filter: drop-shadow(0 0 8px rgba(92, 110, 248, 0.3));
-  }
-  @keyframes spinHex {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  /* ---------------------------- */
+
+  .logo-text { font-size:22px; font-weight:800; letter-spacing:2px; position:relative; color:var(--text); }
+  .logo-text::before { content:attr(data-text); position:absolute; left:0; top:0; width:100%; color:var(--accent); z-index:-1; transform:translate(-2px, 2px); filter:blur(3px); opacity:0; transition:0.3s ease; }
+  .logo-text::after { content:''; position:absolute; bottom:-4px; left:0; width:100%; height:2px; background:linear-gradient(90deg, transparent, var(--accent2), var(--green), transparent); transform:scaleX(0); transition:0.4s ease; opacity:0.8; }
+  
+  .logo:hover .logo-text::before { opacity:0.8; transform:translate(-3px, 3px); }
+  .logo:hover .logo-text::after { transform:scaleX(1); }
+  /* ------------------------------------- */
 
   .stats{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);display:flex;gap:16px}
   .stats span b{color:var(--text)}
@@ -158,8 +141,8 @@
 
 <header>
   <div class="logo">
-    <span class="logo-icon">⬡</span>
-    <span class="logo-text">VAULT</span>
+    <div class="logo-cube"></div>
+    <span class="logo-text" data-text="ZXYstorage">ZXYstorage</span>
   </div>
   <div class="stats">
     <span>FILES <b id="statCount">0</b></span>
